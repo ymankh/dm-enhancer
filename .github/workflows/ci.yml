@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+
+      - name: Build app, portable zip and installer
+        shell: pwsh
+        run: ./build.ps1 -Version "0.0.0-ci.${{ github.run_number }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dm-enhancer-${{ github.sha }}
+          path: dist/*
+          retention-days: 14

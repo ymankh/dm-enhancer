@@ -1,0 +1,64 @@
+name: Release
+
+# Push a tag like v1.2.0 to build the app and publish a GitHub release with:
+#   DmEnhancer-Setup-<version>.exe     installer
+#   DmEnhancer-<version>-portable.zip  standalone app, zipped
+#   DmEnhancer.exe                     standalone app, single file
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from tag
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+
+      - name: Build app, portable zip and installer
+        shell: pwsh
+        run: ./build.ps1 -Version $env:VERSION
+
+      - name: Check the installer was built
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "dist/DmEnhancer-Setup-$env:VERSION.exe")) { throw "Installer missing" }
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $notes = @"
+          ## Downloads
+
+          | File | What it is |
+          |---|---|
+          | ``DmEnhancer-Setup-$env:VERSION.exe`` | Installer. Installs for your user only (no admin), adds a Start menu entry, and can start the app with Windows. |
+          | ``DmEnhancer-$env:VERSION-portable.zip`` | Standalone app, zipped. Unzip anywhere and run ``DmEnhancer.exe``. |
+          | ``DmEnhancer.exe`` | Standalone app as a single file. |
+
+          Needs Windows 10 or 11 and [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or the [Codex CLI](https://github.com/openai/codex), installed and signed in.
+
+          The files aren't code-signed, so Windows SmartScreen may warn the first time. Click **More info**, then **Run anyway**.
+          "@
+          gh release create "${{ github.ref_name }}" dist/* `
+            --title "DM Enhancer $env:VERSION" `
+            --notes $notes `
+            --generate-notes `
+            --verify-tag

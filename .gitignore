@@ -1,0 +1,22 @@
+# Build output
+bin/
+obj/
+dist/
+publish/
+*.zip
+
+# IDE / editor
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.swp
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Local tooling
+.claude/settings.local.json

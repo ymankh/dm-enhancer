@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- .NET Framework 4.8 ships with Windows: no runtime to install, small memory footprint. -->
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>DmEnhancer</RootNamespace>
+    <AssemblyName>DmEnhancer</AssemblyName>
+    <AssemblyTitle>DM Enhancer</AssemblyTitle>
+    <Product>DM Enhancer</Product>
+    <Company>ymankh</Company>
+    <Authors>ymankh</Authors>
+    <Copyright>Copyright © ymankh</Copyright>
+    <!-- Overridden by the release workflow from the git tag (v1.2.3 -> 1.2.3). -->
+    <Version>1.0.0</Version>
+    <ApplicationIcon>assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <DebugType>none</DebugType>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="src\DefaultPrompt.md" LogicalName="DefaultPrompt.md" />
+    <None Remove="src\DefaultPrompt.md" />
+  </ItemGroup>
+
+</Project>
