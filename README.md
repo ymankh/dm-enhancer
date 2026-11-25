@@ -110,6 +110,11 @@ build.ps1                build and package script (used locally and in CI)
 .github/workflows/       CI and release pipelines
 docs/ARCHITECTURE.md     how it works and why it's so small
 CHANGELOG.md             release history
+LICENSE                  MIT license
 ```
 
 To learn how the app works inside, start with [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+## License
+
+[MIT](LICENSE)
