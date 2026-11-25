@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Inno Setup
         shell: pwsh
@@ -23,7 +23,7 @@ jobs:
         shell: pwsh
         run: ./build.ps1 -Version "0.0.0-ci.${{ github.run_number }}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dm-enhancer-${{ github.sha }}
           path: dist/*
