@@ -18,6 +18,12 @@ namespace DmEnhancer
         readonly AppSettings work;
         string currentProvider;
         readonly ComboBox provider = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 220 };
+        static readonly string[] ProviderIds = { Editor.Claude, Editor.Codex, Editor.Agy };
+        readonly Label agyWarning = new Label { AutoSize = true, MaximumSize = new Size(590, 0), ForeColor = Color.FromArgb(176, 72, 0), Margin = new Padding(0, 0, 0, 4) };
+        readonly CheckBox agyDeleteHistory = new CheckBox { AutoSize = true, Text = "Delete each agy conversation after the edit (agy has no option to skip saving)" };
+        FlowLayoutPanel agyPanel;
+        Label agyPanelLabel;
+        bool switchingProvider;
         readonly Label reasoningHint = new Label { AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 6, 0, 0) };
         readonly ComboBox model = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown, Width = 220 };
         readonly ComboBox reasoning = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Width = 110 };
@@ -42,7 +48,7 @@ namespace DmEnhancer
         public SettingsForm(AppSettings current, Icon icon)
         {
             work = current.Clone();
-            currentProvider = current.Provider == Editor.Codex ? Editor.Codex : Editor.Claude;
+            currentProvider = Array.IndexOf(ProviderIds, current.Provider) >= 0 ? current.Provider : Editor.Claude;
             Text = "DM Enhancer settings";
             Icon = icon;
             AutoScaleDimensions = new SizeF(96f, 96f);
@@ -57,17 +63,38 @@ namespace DmEnhancer
             root.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
             // Provider, model + reasoning
-            provider.Items.AddRange(new object[] { "Claude Code", "Codex" });
-            provider.SelectedIndex = currentProvider == Editor.Codex ? 1 : 0;
+            provider.Items.AddRange(new object[] { "Claude Code (recommended)", "Codex", "Antigravity (agy)" });
+            provider.SelectedIndex = Array.IndexOf(ProviderIds, currentProvider);
             provider.SelectedIndexChanged += (_, __) =>
             {
+                if (switchingProvider) return;
+                var next = ProviderIds[provider.SelectedIndex];
+                if (next == Editor.Agy && !work.AgyWarningAccepted)
+                {
+                    if (!ConfirmAgy())
+                    {
+                        switchingProvider = true;
+                        provider.SelectedIndex = Array.IndexOf(ProviderIds, currentProvider);
+                        switchingProvider = false;
+                        return;
+                    }
+                    work.AgyWarningAccepted = true;
+                }
                 StoreProviderFields();
-                currentProvider = provider.SelectedIndex == 1 ? Editor.Codex : Editor.Claude;
+                currentProvider = next;
                 LoadProviderFields();
             };
-            AddRow(root, "Provider:", Row(provider, new Label { Text = "Claude Code ≈ 2s per message, Codex ≈ 4-5s", AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 6, 0, 0) }));
+            AddRow(root, "Provider:", Row(provider, new Label { Text = "Claude Code ≈ 2s per message, Codex ≈ 4-5s, agy ≈ 4-6s", AutoSize = true, ForeColor = SystemColors.GrayText, Padding = new Padding(6, 6, 0, 0) }));
             var modelRow = Row(model, new Label { Text = "Reasoning:", AutoSize = true, Padding = new Padding(12, 6, 0, 0) }, reasoning, reasoningHint);
             AddRow(root, "Model:", modelRow);
+
+            // agy safety notes (only shown when agy is the provider)
+            agyDeleteHistory.Checked = current.AgyDeleteHistory;
+            agyPanel = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false, Margin = new Padding(0) };
+            agyPanel.Controls.Add(agyWarning);
+            agyPanel.Controls.Add(agyDeleteHistory);
+            agyPanelLabel = AddRow(root, "agy safety:", agyPanel);
+            agyPanelLabel.ForeColor = Color.FromArgb(176, 72, 0);
 
             // Hotkey
             HotkeyText.TryParse(current.Hotkey, out hotkeyCombo);
@@ -150,13 +177,32 @@ namespace DmEnhancer
             return p;
         }
 
-        static void AddRow(TableLayoutPanel t, string label, Control c)
+        static Label AddRow(TableLayoutPanel t, string label, Control c)
         {
             t.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            t.Controls.Add(new Label { Text = label, AutoSize = true, Margin = new Padding(0, 6, 8, 0) }, 0, t.RowCount);
+            var l = new Label { Text = label, AutoSize = true, Margin = new Padding(0, 6, 8, 0) };
+            t.Controls.Add(l, 0, t.RowCount);
             c.Margin = new Padding(0, 2, 0, 6);
             t.Controls.Add(c, 1, t.RowCount);
             t.RowCount++;
+            return l;
+        }
+
+        bool ConfirmAgy()
+        {
+            const string text =
+                "agy (Antigravity CLI) is a full coding agent. It has no plain \"text only\" mode like Claude Code and Codex.\n\n" +
+                "DM Enhancer locks it down as far as agy allows:\n" +
+                "  • a custom editor agent with your prompt and an empty tool list\n" +
+                "  • session-only settings that deny every command, file, web and MCP action, use the strictest approval mode and turn on the terminal sandbox\n" +
+                "  • an empty workspace folder, with your message sent on stdin\n" +
+                "  • if agy still tries to use any tool, the result is thrown away\n\n" +
+                "What can't be fixed:\n" +
+                "  • agy saves every conversation. DM Enhancer can delete each one afterwards, but your messages still end up in agy's shared history summaries.\n" +
+                "  • Global agy rules, plugins and hooks (in ~/.gemini) are still loaded.\n" +
+                "  • It's slower: about 4-6s per message.\n\n" +
+                "Use agy anyway?";
+            return MessageBox.Show(this, text, "Antigravity (agy): security warning", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes;
         }
 
         void HotkeyKeyDown(object sender, KeyEventArgs e)
@@ -177,26 +223,45 @@ namespace DmEnhancer
 
         void LoadProviderFields()
         {
-            bool claude = currentProvider == Editor.Claude;
+            bool claude = currentProvider == Editor.Claude, agy = currentProvider == Editor.Agy;
             model.Items.Clear();
-            model.Items.AddRange((claude ? ClaudeCode.Models : Codex.ListModels().ToArray()).Cast<object>().ToArray());
-            model.Text = claude ? work.ClaudeModel : work.Model;
+            model.Items.AddRange((claude ? ClaudeCode.Models : agy ? Antigravity.Models : Codex.ListModels().ToArray()).Cast<object>().ToArray());
+            model.Text = claude ? work.ClaudeModel : agy ? work.AgyModel : work.Model;
             reasoning.Items.Clear();
-            reasoning.Items.AddRange(claude
+            reasoning.Items.AddRange(claude || agy
                 ? new object[] { "default", "low", "medium", "high" }
                 : new object[] { "none", "low", "medium", "high", "xhigh" });
-            var effort = claude ? work.ClaudeEffort : work.Reasoning;
-            reasoning.SelectedItem = reasoning.Items.Contains(effort) ? effort : "low";
-            reasoningHint.Text = claude ? "low = fastest" : "none = fastest (not every model supports it)";
-            codexPath.Text = claude ? work.ClaudePath : work.CodexPath;
-            var detected = claude ? ClaudeCode.FindExecutable(null) : Codex.FindExecutable(null);
-            SetCue(codexPath, detected != null ? "auto: " + detected : "not found: browse to " + (claude ? "claude.exe" : "codex.exe"));
+            var effort = claude ? work.ClaudeEffort : agy ? work.AgyEffort : work.Reasoning;
+            reasoning.SelectedItem = reasoning.Items.Contains(effort) ? effort : (agy ? "default" : "low");
+            reasoningHint.Text = claude ? "low = fastest" : agy ? "default = level in the model name" : "none = fastest (not every model supports it)";
+            codexPath.Text = claude ? work.ClaudePath : agy ? work.AgyPath : work.CodexPath;
+            var detected = claude ? ClaudeCode.FindExecutable(null) : agy ? Antigravity.FindExecutable(null) : Codex.FindExecutable(null);
+            SetCue(codexPath, detected != null ? "auto: " + detected : "not found: browse to " + (claude ? "claude.exe" : agy ? "agy.exe" : "codex.exe"));
+
+            agyPanel.Visible = agyPanelLabel.Visible = agy;
+            if (agy)
+            {
+                var text = "agy is a coding agent, so it runs locked down: a no-tools editor agent, a session-only deny-all " +
+                           "permission list, the terminal sandbox and an empty workspace. Any attempt to use a tool throws the result away. " +
+                           "Your messages still reach agy's shared history summaries, even with the option below turned on.";
+                var extras = Antigravity.GlobalExtras();
+                if (extras.Count > 0)
+                    text += "\n\u26A0 These global agy files are loaded into every run and can't be turned off here: " + string.Join(", ", extras) + ".";
+                agyWarning.Text = "\u26A0 " + text;
+            }
         }
 
         void StoreProviderFields()
         {
             var effort = reasoning.SelectedItem as string ?? "low";
-            if (currentProvider == Editor.Claude)
+            work.AgyDeleteHistory = agyDeleteHistory.Checked;
+            if (currentProvider == Editor.Agy)
+            {
+                work.AgyModel = model.Text.Trim();
+                work.AgyEffort = effort;
+                work.AgyPath = codexPath.Text.Trim();
+            }
+            else if (currentProvider == Editor.Claude)
             {
                 work.ClaudeModel = model.Text.Trim();
                 work.ClaudeEffort = effort;
@@ -251,7 +316,7 @@ namespace DmEnhancer
             var s = FromForm();
             tryCts = new CancellationTokenSource();
             tryButton.Text = "Cancel";
-            tryStatus.Text = "running " + (s.Provider == Editor.Claude ? s.ClaudeModel : s.Model) + "…";
+            tryStatus.Text = "running " + Editor.ModelOf(s) + "…";
             tryOutput.Text = "";
             var started = DateTime.UtcNow;
             try

@@ -4,7 +4,7 @@
 
 A small Windows tray app that fixes the English in your chat messages. Copy a message, press **Ctrl+Alt+E**, and about two seconds later the corrected version is pasted back in place.
 
-The editing is done by **Claude Code** or the **Codex CLI**, both already signed in on your machine. The app runs them as plain text editors with your own prompt: no coding-agent instructions, tools, skills, plugins or MCP servers. So the reply is only the corrected message.
+The editing is done by **Claude Code**, the **Codex CLI** or the **Antigravity CLI (agy)**, using whichever is already signed in on your machine. The app runs them as plain text editors with your own prompt: no coding-agent instructions, tools, skills, plugins or MCP servers. So the reply is only the corrected message. See [docs/SECURITY.md](docs/SECURITY.md) for how each one is locked down.
 
 The app is a single 50 KB exe with no dependencies. It uses about 0.5 MB of active memory while waiting in the tray.
 
@@ -22,6 +22,7 @@ Download the latest release from the [Releases page](https://github.com/ymankh/d
 - At least one of these, installed and signed in:
   - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (recommended, faster)
   - [Codex CLI](https://github.com/openai/codex)
+  - [Antigravity CLI](https://antigravity.google/docs/cli/reference) (`agy`). Supported with extra safety measures and warnings; see [Security](docs/SECURITY.md#antigravity-agy).
 
 The files aren't code-signed, so SmartScreen may warn the first time. Click **More info**, then **Run anyway**.
 
@@ -42,8 +43,9 @@ Double-click the tray icon to open the settings.
 
 | Setting | What it does |
 |---|---|
-| Provider | Claude Code or Codex |
-| Model / Reasoning | Which model runs the edit, and how much it thinks. `low` is the fastest. |
+| Provider | Claude Code (recommended), Codex or Antigravity (agy). Picking agy shows a security warning the first time. |
+| Model / Reasoning | Which model runs the edit, and how much it thinks. `low` is the fastest. agy model names include the level, so leave agy on `default`. |
+| Delete each agy conversation | agy only. agy saves every conversation; this deletes each one after the edit (on by default). |
 | Hotkey | Click the box and press a new combination (needs Ctrl and/or Alt) |
 | Paste automatically | Sends Ctrl+V after editing. Turn it off to only update the clipboard. |
 | Copy the selected text first | Sends Ctrl+C before reading the clipboard |
@@ -66,8 +68,10 @@ Measured with the default prompt on short chat messages (November 2026):
 | Claude Code | claude-opus-5-5, low | 3.5–6.5s |
 | Codex | gpt-5.6-luna, none | ~3.7s (fastest Codex option) |
 | Codex | gpt-6.2-sol / gpt-6-sol / gpt-5.6-sol | 4–5s |
+| agy | gemini-4-hydrogen-low / claude-sonnet-5-5-low | 4–5s |
+| agy | gemini-3.8-flash-low | 6–9s |
 
-No Codex model gets much below 4s, because Codex spends 2.5–3s on its own startup for every message. The `none` reasoning level only works on some Codex models.
+No Codex model gets much below 4s, because Codex spends 2.5–3s on its own startup for every message. The `none` reasoning level only works on some Codex models. agy is a full agent with more startup work, and it can't be isolated as fully as the other two, so it's best kept as a fallback.
 
 ## Build from source
 
@@ -102,6 +106,7 @@ src/                     the app (C#, WinForms, .NET Framework 4.8)
   Cli.cs                 starts a CLI process, sends stdin, timeouts and cancelling, picks the provider
   ClaudeCode.cs          `claude -p` flags that strip tools, skills, MCP and settings
   Codex.cs               `codex exec` flags that strip tools, skills, plugins and context
+  Antigravity.cs         agy: no-tools agent, deny-all session settings, output safety check, cleanup
   Native.cs              Win32 calls: global hotkey, simulated Ctrl+C/V, memory trim
   DefaultPrompt.md       the built-in editor prompt (embedded in the exe)
 assets/                  app icon
@@ -109,6 +114,7 @@ installer/DmEnhancer.iss Inno Setup installer script
 build.ps1                build and package script (used locally and in CI)
 .github/workflows/       CI and release pipelines
 docs/ARCHITECTURE.md     how it works and why it's so small
+docs/SECURITY.md         how each provider is locked down, test results and known limits
 CHANGELOG.md             release history
 LICENSE                  MIT license
 ```

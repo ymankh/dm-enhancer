@@ -12,7 +12,7 @@ DM Enhancer is a small tray app that connects your clipboard to an AI CLI. It ha
 | Build | .NET SDK project targeting `net48` | Modern tooling for an old, always-present runtime |
 | Installer | Inno Setup 6 | Per-user install, no admin prompt, small setup file |
 | CI/CD | GitHub Actions on `windows-latest` | Builds every push; tags publish releases |
-| AI | Claude Code (`claude -p`) or Codex (`codex exec`) | Already installed and signed in on your machine |
+| AI | Claude Code (`claude -p`), Codex (`codex exec`) or Antigravity (`agy`) | Already installed and signed in on your machine |
 
 The app has no NuGet packages. Everything it uses ships with Windows.
 
@@ -64,6 +64,15 @@ Some Codex models still declare a few built-in tools that can't be turned off wi
 
 Both CLIs run in an empty folder (`%APPDATA%\DmEnhancer\work`), so no project files get picked up.
 
+**Antigravity (agy)** (`src/Antigravity.cs`) can't be stripped down with flags alone. The app:
+- runs a custom no-tools agent with your prompt,
+- applies session-only deny-all permissions and the terminal sandbox,
+- sends the message on stdin as a `stream-json` event,
+- reads the JSON event stream and throws the result away if any tool was used or the lockdown wasn't applied,
+- deletes the conversation files agy saves for each run.
+
+[SECURITY.md](SECURITY.md) has the details, test results and known limits.
+
 ## Why it's so small
 
 **The exe is 50 KB:**
@@ -96,5 +105,6 @@ With debug logging on, Codex spends 2.5–3s before the model starts answering. 
 | `Cli.cs` | Starts a CLI process (stdin and stdout in UTF-8), handles timeouts and cancelling, Windows argument quoting, picks the provider (`Editor`). |
 | `ClaudeCode.cs` | Finds `claude.exe` and builds its arguments. |
 | `Codex.cs` | Finds the native `codex.exe` (skipping the Node wrapper), reads the model list from Codex's cache, builds its arguments. |
+| `Antigravity.cs` | Finds `agy.exe`, writes the no-tools agent and session settings, checks the JSON event stream, deletes the conversation files, lists global agy files that still load. |
 | `Native.cs` | `RegisterHotKey` on a message-only window, `keybd_event` for Ctrl+C and Ctrl+V, clipboard retries, memory trimming. |
 | `DefaultPrompt.md` | The built-in editor prompt, embedded as a resource. |

@@ -14,6 +14,11 @@ namespace DmEnhancer
         public string Reasoning = "low";                  // Codex reasoning effort
         public string ClaudeModel = ClaudeCode.DefaultModel;
         public string ClaudeEffort = "low";
+        public string AgyModel = Antigravity.DefaultModel;
+        public string AgyEffort = "default";
+        public string AgyPath = "";
+        public bool AgyDeleteHistory = true;
+        public bool AgyWarningAccepted = false;
         public string Hotkey = "Ctrl+Alt+E";
         public bool CopySelectionFirst = false;
         public bool AutoPaste = true;
@@ -65,6 +70,11 @@ namespace DmEnhancer
                 if (map.TryGetValue("ClaudeModel", out v) && v.Length > 0) s.ClaudeModel = v;
                 if (map.TryGetValue("ClaudeEffort", out v)) s.ClaudeEffort = v;
                 if (map.TryGetValue("ClaudePath", out v)) s.ClaudePath = v;
+                if (map.TryGetValue("AgyModel", out v) && v.Length > 0) s.AgyModel = v;
+                if (map.TryGetValue("AgyEffort", out v) && v.Length > 0) s.AgyEffort = v;
+                if (map.TryGetValue("AgyPath", out v)) s.AgyPath = v;
+                if (map.TryGetValue("AgyDeleteHistory", out v)) s.AgyDeleteHistory = v != "false";
+                if (map.TryGetValue("AgyWarningAccepted", out v)) s.AgyWarningAccepted = v == "true";
                 if (map.TryGetValue("Reasoning", out v)) s.Reasoning = v;
                 if (map.TryGetValue("Hotkey", out v) && v.Length > 0) s.Hotkey = v;
                 if (map.TryGetValue("CopySelectionFirst", out v)) s.CopySelectionFirst = v == "true";
@@ -77,7 +87,7 @@ namespace DmEnhancer
 
             s.Prompt = File.Exists(PromptPath) ? File.ReadAllText(PromptPath, Encoding.UTF8) : DefaultPrompt;
             if (string.IsNullOrWhiteSpace(s.Model)) s.Model = Codex.DefaultModel();
-            if (s.Provider != Editor.Claude && s.Provider != Editor.Codex)
+            if (s.Provider != Editor.Claude && s.Provider != Editor.Codex && s.Provider != Editor.Agy)
                 // Claude Code answers in about half the time Codex needs, so prefer it when it's installed.
                 s.Provider = ClaudeCode.FindExecutable(s.ClaudePath) != null || Codex.FindExecutable(s.CodexPath) == null ? Editor.Claude : Editor.Codex;
             return s;
@@ -92,6 +102,11 @@ namespace DmEnhancer
             sb.AppendLine("ClaudeModel=" + ClaudeModel);
             sb.AppendLine("ClaudeEffort=" + ClaudeEffort);
             sb.AppendLine("ClaudePath=" + ClaudePath);
+            sb.AppendLine("AgyModel=" + AgyModel);
+            sb.AppendLine("AgyEffort=" + AgyEffort);
+            sb.AppendLine("AgyPath=" + AgyPath);
+            sb.AppendLine("AgyDeleteHistory=" + (AgyDeleteHistory ? "true" : "false"));
+            sb.AppendLine("AgyWarningAccepted=" + (AgyWarningAccepted ? "true" : "false"));
             sb.AppendLine("Reasoning=" + Reasoning);
             sb.AppendLine("Hotkey=" + Hotkey);
             sb.AppendLine("CopySelectionFirst=" + (CopySelectionFirst ? "true" : "false"));

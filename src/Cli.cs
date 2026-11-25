@@ -123,8 +123,19 @@ namespace DmEnhancer
     {
         public const string Claude = "claude";
         public const string Codex = "codex";
+        public const string Agy = "agy";
 
-        public static Task<string> RunAsync(AppSettings s, string input, CancellationToken ct) =>
-            s.Provider == Codex ? DmEnhancer.Codex.RunAsync(s, input, ct) : ClaudeCode.RunAsync(s, input, ct);
+        public static Task<string> RunAsync(AppSettings s, string input, CancellationToken ct)
+        {
+            switch (s.Provider)
+            {
+                case Codex: return DmEnhancer.Codex.RunAsync(s, input, ct);
+                case Agy: return Antigravity.RunAsync(s, input, ct);
+                default: return ClaudeCode.RunAsync(s, input, ct);
+            }
+        }
+
+        public static string ModelOf(AppSettings s) =>
+            s.Provider == Codex ? s.Model : s.Provider == Agy ? s.AgyModel : s.ClaudeModel;
     }
 }

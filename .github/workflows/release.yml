@@ -53,7 +53,7 @@ jobs:
           | ``DmEnhancer-$env:VERSION-portable.zip`` | Standalone app, zipped. Unzip anywhere and run ``DmEnhancer.exe``. |
           | ``DmEnhancer.exe`` | Standalone app as a single file. |
 
-          Needs Windows 10 or 11 and [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or the [Codex CLI](https://github.com/openai/codex), installed and signed in.
+          Needs Windows 10 or 11 and one of [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (recommended), the [Codex CLI](https://github.com/openai/codex) or the [Antigravity CLI](https://antigravity.google/docs/cli/reference), installed and signed in. See [SECURITY.md](https://github.com/ymankh/dm-enhancer/blob/main/docs/SECURITY.md) for how each one is locked down.
 
           The files aren't code-signed, so Windows SmartScreen may warn the first time. Click **More info**, then **Run anyway**.
           "@

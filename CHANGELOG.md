@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 – 2026-11-25
+
+- **Added the Antigravity CLI (`agy`) as a third provider**, locked down as far as agy allows:
+  - a custom editor agent with your prompt and an empty tool list (the model sees 1 tool instead of 60)
+  - session-only settings that deny every command, file, URL and MCP action, use strict approvals, turn on the terminal sandbox and turn off access outside the workspace
+  - an empty workspace, with the message sent on stdin
+  - the JSON event stream is checked, and the result is thrown away if agy used any tool or the lockdown wasn't applied
+  - each agy conversation is deleted after the edit (on by default)
+- Picking agy shows a security warning the first time. The settings window shows a safety note, including any global agy rules, plugins or hooks that would still load.
+- New [docs/SECURITY.md](docs/SECURITY.md): how each provider is locked down, test results, and known limits
+
 ## 1.0.0 – 2026-11-25
 
 First release.
